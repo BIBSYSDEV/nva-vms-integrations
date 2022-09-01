@@ -1,0 +1,4 @@
+enableFeaturePreview('VERSION_CATALOGS')
+
+rootProject.name = 'nva-vms-integrations'
+include 'video-browser-api'
