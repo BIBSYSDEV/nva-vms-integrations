@@ -1,32 +1,35 @@
 openapi: 3.0.3
 info:
-  title: NVA Courses API
+  title: NVA Video Management System API
   version: 1.0.0
 paths:
   /:
     get:
-      summary: Get currently taught courses
+      summary: Get video presentations for the current user from the integrated VMS
       security:
-        - CognitoUserPool: ['https://api.nva.unit.no/scopes/backend', 'https://api.nva.unit.no/scopes/frontend', 'aws.cognito.signin.user.admin']
+        - CognitoUserPool: [ 'https://api.nva.unit.no/scopes/backend', 'https://api.nva.unit.no/scopes/frontend', 'aws.cognito.signin.user.admin' ]
       x-amazon-apigateway-integration:
         uri:
-          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CurrentlyTaughtCoursesFunction.Arn}/invocations
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${NvaVideoPresentationsFunction.Arn}/invocations
         responses: { }
-        httpMethod: POST
+        httpMethod: GET
         type: AWS_PROXY
+      parameters:
+        - in: query
+          name: size
+          description: The numbers of results requested. Defaults to 10.
+        - in: query
+          name: offset
+          description: The offset to get results from. Defaults to 0.
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  courses:
-                    required: true
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Course'
+                type: array
+                items:
+                  $ref: '#/components/schemas/PagedResult'
         '502':
           description: Bad Gateway
           content:
@@ -36,18 +39,48 @@ paths:
 
 components:
   schemas:
-    Course:
+    PagedResult:
       type: object
       properties:
-        code:
-          required: true
+        type:
           type: string
-        year:
-          required: true
+        @context:
+          type: string
+        id:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoPresentation'
+        size:
           type: integer
-        term:
-          required: true
+        nextResults:
           type: string
+        previousResults:
+          type: string
+
+    VideoPresentation:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        timeRecorded:
+          type: string
+        presenter:
+          type: string
+        downloadUrl:
+          type: string
+        streamingUrl:
+          type: string
+        thumbnailUrl:
+          type: string
+        contentIdentifier:
+          type: string
+
     Problem:
       type: object
       properties:
