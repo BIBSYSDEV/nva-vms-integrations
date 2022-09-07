@@ -23,10 +23,8 @@ public class PagedResult<T> {
     private final URI previousResults;
 
     @JsonCreator
-    public PagedResult(@JsonProperty("@context") final URI context,
-                       @JsonProperty("id") final URI id,
-                       @JsonProperty("results") final List<T> results,
-                       @JsonProperty("totalSize") final int totalSize,
+    public PagedResult(@JsonProperty("@context") final URI context, @JsonProperty("id") final URI id,
+                       @JsonProperty("results") final List<T> results, @JsonProperty("totalSize") final int totalSize,
                        @JsonProperty("nextResults") final URI nextResults,
                        @JsonProperty("previousResults") final URI previousResults) {
         this.context = context;
@@ -37,32 +35,44 @@ public class PagedResult<T> {
         this.previousResults = previousResults;
     }
 
-    public PagedResult(final URI context,
-                       final URI baseUri,
-                       final int size,
-                       final int offset,
-                       final int totalSize,
+    @SuppressWarnings("PMD")
+    public PagedResult(final URI context, final URI baseUri, final int pageSize, final int offset, final int totalSize,
                        final List<T> results) {
         this.context = context;
         this.id = UriWrapper.fromUri(baseUri)
-                      .addQueryParameter(SIZE, Integer.toString(size))
+                      .addQueryParameter(SIZE, Integer.toString(pageSize))
                       .addQueryParameter(OFFSET, Integer.toString(offset))
                       .getUri();
         this.totalSize = totalSize;
         this.results = results;
 
-        this.previousResults = null;
-        /* todo UriWrapper.fromUri(baseUri)
-                                   .addQueryParameter(SIZE, Integer.toString(size))
-                                   .addQueryParameter(OFFSET, Integer.toString(offset+size))
-                                   .getUri();
-         */
-        this.nextResults = null;
-        /* todo UriWrapper.fromUri(baseUri)
-                               .addQueryParameter(SIZE, Integer.toString(size))
-                               .addQueryParameter(OFFSET, Integer.toString(offset-size))
-                               .getUri();
-         */
+        if (totalSize <= pageSize) {
+            this.previousResults = null;
+            this.nextResults = null;
+        } else if (offset <= pageSize) {
+            this.previousResults = null;
+            this.nextResults = createNextResultUri(baseUri, pageSize, offset);
+        } else if (offset + pageSize >= totalSize) {
+            this.previousResults = createPreviousResultUri(baseUri, pageSize, offset);
+            this.nextResults = null;
+        } else {
+            this.previousResults = createPreviousResultUri(baseUri, pageSize, offset);
+            this.nextResults = createNextResultUri(baseUri, pageSize, offset);
+        }
+    }
+
+    public URI createNextResultUri(URI baseUri, Integer pageSize, Integer offset) {
+        return UriWrapper.fromUri(baseUri)
+                   .addQueryParameter(SIZE, Integer.toString(pageSize))
+                   .addQueryParameter(OFFSET, Integer.toString(offset + pageSize + 1))
+                   .getUri();
+    }
+
+    public URI createPreviousResultUri(URI baseUri, Integer pageSize, Integer offset) {
+        return UriWrapper.fromUri(baseUri)
+                   .addQueryParameter(SIZE, Integer.toString(pageSize))
+                   .addQueryParameter(OFFSET, Integer.toString(offset - pageSize + 1))
+                   .getUri();
     }
 
     public URI getContext() {

@@ -3,8 +3,10 @@ package no.sikt.nva.vms.browser;
 import static nva.commons.core.attempt.Try.attempt;
 import java.net.URI;
 import nva.commons.apigateway.RequestInfo;
+import nva.commons.core.JacocoGenerated;
 import nva.commons.core.paths.UriWrapper;
 
+@JacocoGenerated
 public final class RequestUtils {
 
     private static final String HTTPS = "https";

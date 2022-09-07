@@ -52,7 +52,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VideoPresentation'
-        size:
+        totalSize:
           type: integer
         nextResults:
           type: string

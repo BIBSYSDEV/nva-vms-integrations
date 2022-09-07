@@ -3,7 +3,7 @@ package no.sikt.nva.vms.browser;
 import java.net.URI;
 import java.util.List;
 
-public class InMemoryVideoProvider implements VideoProvider{
+public class InMemoryVideoProvider implements VideoProvider {
     private final URI context;
     private final URI baseUri;
     private final List<VideoPresentation> videoPresentations;
@@ -17,12 +17,19 @@ public class InMemoryVideoProvider implements VideoProvider{
     }
 
     @Override
-    public PagedResult<VideoPresentation> fetchVideoPresentations(int size, int offset) {
+    public PagedResult<VideoPresentation> fetchVideoPresentations(int pageSize, int offset) {
+        var lastIndexOfNextVideosOnPage = offset + pageSize;
+        if (lastIndexOfNextVideosOnPage > videoPresentations.size()) {
+            lastIndexOfNextVideosOnPage = videoPresentations.size();
+        }
+        if (offset > videoPresentations.size()) {
+            offset = videoPresentations.size();
+        }
         return new PagedResult<>(context,
                                  baseUri,
-                                 size,
+                                 pageSize,
                                  offset,
                                  videoPresentations.size(),
-                                 videoPresentations.subList(offset, size));
+                                 videoPresentations.subList(offset, lastIndexOfNextVideosOnPage));
     }
 }
