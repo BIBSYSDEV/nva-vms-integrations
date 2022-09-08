@@ -17,6 +17,7 @@ paths:
       parameters:
         - in: query
           name: size
+
           description: The numbers of results requested. Defaults to 10.
         - in: query
           name: offset

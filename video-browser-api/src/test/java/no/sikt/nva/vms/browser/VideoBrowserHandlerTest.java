@@ -66,12 +66,13 @@ public class VideoBrowserHandlerTest {
         var offset = 0;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getResults(), iterableWithSize(SINGLE_RESULT_SIZE));
         assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
@@ -91,12 +92,13 @@ public class VideoBrowserHandlerTest {
         var offset = randomInteger(videoPresentations.size());
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
@@ -113,12 +115,13 @@ public class VideoBrowserHandlerTest {
         var offset = randomInteger(videoPresentations.size());
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
@@ -135,12 +138,13 @@ public class VideoBrowserHandlerTest {
         var offset = 0;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
@@ -159,12 +163,13 @@ public class VideoBrowserHandlerTest {
         var offset = Math.round(videoPresentations.size() / 10) * 10;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
@@ -180,16 +185,16 @@ public class VideoBrowserHandlerTest {
                                                                                            videoPresentations));
         var input = new HandlerRequestBuilder<Void>(OBJECT_MAPPER).build();
         var output = new ByteArrayOutputStream();
+
         handler.handleRequest(input, output, context);
 
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
-
         var pagedResult = getBodyObject(response.getBody());
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
         assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
         assertThat(pagedResult.getId().toString(), is(equalTo(
             getExpectedPagedResultId(baseUri, Integer.parseInt(DEFAULT_PAGE_SIZE), Integer.parseInt(DEFAULT_OFFSET)))));
-
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
     }
 
@@ -212,7 +217,7 @@ public class VideoBrowserHandlerTest {
     }
 
     /**
-     * Invalid string values and longs are handled by VideoBrowserHandler when parsing.
+     * Longs are handled by VideoBrowserHandler when parsing.
      */
     @Test
     public void shouldThrowExceptionIfNegativePageSizeOrOffsetValues() throws IOException {
