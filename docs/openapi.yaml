@@ -31,10 +31,16 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PagedResult'
+        '400':
+          description: Bad Request, invalid query parameters
+          content:
+            application/problem+json:
+              schema:
+                  $ref: '#/components/schemas/PagedResult'
         '502':
           description: Bad Gateway
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
 
