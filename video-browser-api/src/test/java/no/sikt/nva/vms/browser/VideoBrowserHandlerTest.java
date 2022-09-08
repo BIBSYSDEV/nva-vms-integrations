@@ -59,9 +59,8 @@ public class VideoBrowserHandlerTest {
     public void shouldHandleSingleResultCorrectly() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           Collections.singletonList(
-                                                                                               getDefaultVideoPresentation())));
+        var videoPresentations = Collections.singletonList(getDefaultVideoPresentation());
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 1;
         var offset = 0;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -86,8 +85,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
         var offset = randomInteger(videoPresentations.size());
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -109,8 +107,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(240);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 25;
         var offset = randomInteger(videoPresentations.size());
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -132,8 +129,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
         var offset = 0;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -157,8 +153,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
         var offset = Math.round(videoPresentations.size() / 10) * 10;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -181,8 +176,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var input = new HandlerRequestBuilder<Void>(OBJECT_MAPPER).build();
         var output = new ByteArrayOutputStream();
 
@@ -203,8 +197,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = new ArrayList<VideoPresentation>();
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var input = createInput(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET);
         var output = new ByteArrayOutputStream();
         handler.handleRequest(input, output, context);
@@ -224,8 +217,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = -5;
         var offset = -1;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
@@ -241,8 +233,7 @@ public class VideoBrowserHandlerTest {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(20);
-        var handler = new VideoBrowserHandler(environment, () -> new InMemoryVideoProvider(pageResultContext, baseUri,
-                                                                                           videoPresentations));
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = "someSize";
         var offset = "someOffset";
         var input = createInput(size, offset);
@@ -284,6 +275,12 @@ public class VideoBrowserHandlerTest {
                    .withRequestContextValue(PATH_REQUEST_CONTEXT_PARAMETER_NAME, "/vms/presentations")
                    .withQueryParameters(queryParameters)
                    .build();
+    }
+
+    private VideoBrowserHandler createVideoBrowserHandler(URI pageResultContext, URI baseUri,
+                                                          List<VideoPresentation> videoPresentations) {
+        return new VideoBrowserHandler(environment,
+                                       () -> new InMemoryVideoProvider(pageResultContext, baseUri, videoPresentations));
     }
 
     private PagedResult<VideoPresentation> getBodyObject(final String body) throws JsonProcessingException {
