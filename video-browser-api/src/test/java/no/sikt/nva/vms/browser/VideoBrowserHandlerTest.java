@@ -2,7 +2,6 @@ package no.sikt.nva.vms.browser;
 
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_OK;
-import static no.unit.nva.testutils.RandomDataGenerator.randomInteger;
 import static no.unit.nva.testutils.RandomDataGenerator.randomString;
 import static no.unit.nva.testutils.RandomDataGenerator.randomUri;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -81,7 +80,7 @@ public class VideoBrowserHandlerTest {
     public void shouldHandleMultipleResultsWhenNumberOfVideosIsLargerThanPageSize() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
         var offset = 10;
@@ -101,7 +100,7 @@ public class VideoBrowserHandlerTest {
     public void shouldHandleCustomPageSize() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(240);
+        var videoPresentations = generateVideoListWithSize(40);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 20;
         var offset = 40;
@@ -121,7 +120,7 @@ public class VideoBrowserHandlerTest {
     public void shouldReturnNullForPreviousResultsWhenOffsetIsZero() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
         var offset = 0;
@@ -138,16 +137,37 @@ public class VideoBrowserHandlerTest {
         assertThat(pagedResult.getPreviousResults(), is(equalTo(null)));
     }
 
-    @SuppressWarnings("IntegerDivisionInFloatingPointContext")
     @Test
     public void shouldReturnNullForNextResultsWhenSumOfOffsetAndPageSizeIsLargerThanTotalNumberOfVideos()
         throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(25);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
-        var offset = Math.round(videoPresentations.size() / 10) * 10;
+        var offset = 20;
+        var input = createInput(String.valueOf(size), String.valueOf(offset));
+        var output = new ByteArrayOutputStream();
+        handler.handleRequest(input, output, context);
+
+        var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
+        var pagedResult = getBodyObject(response.getBody());
+        assertThat(pagedResult.getContext(), is(equalTo(pageResultContext)));
+        assertThat(pagedResult.getId().toString(), is(equalTo(getExpectedPagedResultId(baseUri, size, offset))));
+        assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
+        assertThat(pagedResult.getNextResults(), is(equalTo(null)));
+    }
+
+    @Test
+    public void shouldReturnNullForNextResultsWhenCornerIndexIsOfSameSizeAsNumberOfVideos()
+        throws IOException {
+        var pageResultContext = randomUri();
+        var baseUri = randomUri();
+        var videoPresentations = generateVideoListWithSize(20);
+        VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
+        var size = 10;
+        var offset = 10;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
         handler.handleRequest(input, output, context);
@@ -165,7 +185,7 @@ public class VideoBrowserHandlerTest {
     public void shouldUseDefaultPageSizeAndOffsetValuesIfMissing() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var input = new HandlerRequestBuilder<Void>(OBJECT_MAPPER).build();
         var output = new ByteArrayOutputStream();
@@ -198,10 +218,10 @@ public class VideoBrowserHandlerTest {
     }
 
     @Test
-    public void shouldThrowExceptionIfNegativePageSizeOrOffsetValues() throws IOException {
+    public void shouldReturnBadRequestIfNegativePageSizeOrOffsetValues() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = -5;
         var offset = -1;
@@ -214,10 +234,10 @@ public class VideoBrowserHandlerTest {
     }
 
     @Test
-    public void shouldThrowExceptionIfInvalidPageSizeOrOffsetValues() throws IOException {
+    public void shouldReturnBadRequestIfInvalidPageSizeOrOffsetValues() throws IOException {
         var pageResultContext = randomUri();
         var baseUri = randomUri();
-        var videoPresentations = generateRandomVideoListWithMinSize(20);
+        var videoPresentations = generateVideoListWithSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = "someSize";
         var offset = "someOffset";
@@ -242,8 +262,8 @@ public class VideoBrowserHandlerTest {
                    .build();
     }
 
-    private static List<VideoPresentation> generateRandomVideoListWithMinSize(int minValue) {
-        return IntStream.range(0, minValue + randomInteger(50))
+    private static List<VideoPresentation> generateVideoListWithSize(int numberOfVideos) {
+        return IntStream.range(0, numberOfVideos)
                    .boxed()
                    .map(i -> getDefaultVideoPresentation())
                    .collect(Collectors.toList());

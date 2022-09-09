@@ -49,7 +49,7 @@ public class PagedResult<T> {
         if (totalSize <= pageSize) {
             this.previousResults = null;
             this.nextResults = null;
-        } else if (offset <= pageSize) {
+        } else if (offset < pageSize) {
             this.previousResults = null;
             this.nextResults = createNextResultUri(baseUri, pageSize, offset);
         } else if (offset + pageSize >= totalSize) {
