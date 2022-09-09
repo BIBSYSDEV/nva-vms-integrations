@@ -64,14 +64,14 @@ public class PagedResult<T> {
     public URI createNextResultUri(URI baseUri, Integer pageSize, Integer offset) {
         return UriWrapper.fromUri(baseUri)
                    .addQueryParameter(SIZE, Integer.toString(pageSize))
-                   .addQueryParameter(OFFSET, Integer.toString(offset + pageSize + 1))
+                   .addQueryParameter(OFFSET, Integer.toString(offset + pageSize))
                    .getUri();
     }
 
     public URI createPreviousResultUri(URI baseUri, Integer pageSize, Integer offset) {
         return UriWrapper.fromUri(baseUri)
                    .addQueryParameter(SIZE, Integer.toString(pageSize))
-                   .addQueryParameter(OFFSET, Integer.toString(offset - pageSize + 1))
+                   .addQueryParameter(OFFSET, Integer.toString(offset - pageSize))
                    .getUri();
     }
 

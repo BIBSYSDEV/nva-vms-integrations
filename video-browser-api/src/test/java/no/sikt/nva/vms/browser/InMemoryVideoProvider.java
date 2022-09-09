@@ -18,9 +18,9 @@ public class InMemoryVideoProvider implements VideoProvider {
 
     @Override
     public PagedResult<VideoPresentation> fetchVideoPresentations(int pageSize, int offset) {
-        var lastIndexOfNextVideosOnPage = offset + pageSize;
-        if (lastIndexOfNextVideosOnPage > videoPresentations.size()) {
-            lastIndexOfNextVideosOnPage = videoPresentations.size();
+        var lastIndexOfVideoOnThisPage = offset + pageSize;
+        if (lastIndexOfVideoOnThisPage > videoPresentations.size()) {
+            lastIndexOfVideoOnThisPage = videoPresentations.size();
         }
         if (offset > videoPresentations.size()) {
             offset = videoPresentations.size();
@@ -30,6 +30,11 @@ public class InMemoryVideoProvider implements VideoProvider {
                                  pageSize,
                                  offset,
                                  videoPresentations.size(),
-                                 videoPresentations.subList(offset, lastIndexOfNextVideosOnPage));
+                                 videoPresentations.subList(offset, lastIndexOfVideoOnThisPage));
+    }
+
+    @Override
+    public List<VideoPresentation> fetchAllVideos() {
+        return videoPresentations;
     }
 }

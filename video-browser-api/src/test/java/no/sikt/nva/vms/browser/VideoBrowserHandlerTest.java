@@ -84,7 +84,7 @@ public class VideoBrowserHandlerTest {
         var videoPresentations = generateRandomVideoListWithMinSize(20);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
         var size = 10;
-        var offset = randomInteger(videoPresentations.size());
+        var offset = 10;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
         handler.handleRequest(input, output, context);
@@ -103,8 +103,8 @@ public class VideoBrowserHandlerTest {
         var baseUri = randomUri();
         var videoPresentations = generateRandomVideoListWithMinSize(240);
         VideoBrowserHandler handler = createVideoBrowserHandler(pageResultContext, baseUri, videoPresentations);
-        var size = 25;
-        var offset = randomInteger(videoPresentations.size());
+        var size = 20;
+        var offset = 40;
         var input = createInput(String.valueOf(size), String.valueOf(offset));
         var output = new ByteArrayOutputStream();
         handler.handleRequest(input, output, context);
@@ -197,9 +197,6 @@ public class VideoBrowserHandlerTest {
         assertThat(pagedResult.getTotalSize(), is(equalTo(videoPresentations.size())));
     }
 
-    /**
-     * Longs are handled by VideoBrowserHandler when parsing.
-     */
     @Test
     public void shouldThrowExceptionIfNegativePageSizeOrOffsetValues() throws IOException {
         var pageResultContext = randomUri();

@@ -26,10 +26,10 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
     private final Supplier<VideoProvider> videoProvider;
 
-//    @JacocoGenerated
-//    public VideoBrowserHandler() {
-//        this(new Environment(), () -> null);
-//    }
+    //    @JacocoGenerated
+    //    public VideoBrowserHandler() {
+    //        this(new Environment(), () -> null);
+    //    }
 
     public VideoBrowserHandler(final Environment environment, final Supplier<VideoProvider> videoProvider) {
         super(Void.class, environment);
@@ -38,11 +38,13 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
     @Override
     protected PagedResult<VideoPresentation> processInput(final Void input, final RequestInfo requestInfo,
-                                                          final Context context) throws BadRequestException {
+                                                          final Context context)
+        throws BadRequestException {
 
         var pageSize = attempt(
-            () -> Integer.parseInt(requestInfo.getQueryParameterOpt(SIZE).orElse(DEFAULT_SIZE))).orElseThrow(
-            exception -> new BadRequestException(INVALID_QUERY_PARAMETERS_EXCEPTION_MESSAGE, HTTP_BAD_REQUEST));
+            () -> Integer.parseInt(requestInfo.getQueryParameterOpt(SIZE).orElse(DEFAULT_SIZE)))
+                           .orElseThrow(exception -> new BadRequestException(INVALID_QUERY_PARAMETERS_EXCEPTION_MESSAGE,
+                                                                             HTTP_BAD_REQUEST));
 
         var offset = attempt(
             () -> Integer.parseInt(requestInfo.getQueryParameterOpt(OFFSET).orElse(DEFAULT_OFFSET))).orElseThrow();
@@ -65,6 +67,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         // TODO: will be implemented when we actually start returning results.
         return null;
     }
+
     @SuppressWarnings("PMD")
     @JacocoGenerated
     private static URI generateNextResults() {
@@ -80,6 +83,4 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
                    .addQueryParameter(OFFSET, Integer.toString(offset))
                    .getUri();
     }
-
-
 }
