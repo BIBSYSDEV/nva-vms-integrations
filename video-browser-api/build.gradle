@@ -14,6 +14,8 @@ dependencies {
 
     implementation libs.bundles.jackson
 
+    implementation 'com.kaltura:kalturaApiClient:18.12.0'
+
     testImplementation libs.nva.testutils
     testImplementation libs.nva.json
 }
