@@ -12,9 +12,6 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Description: URI to the OAUTH endpoint of the Cognito client
     Default: /NVA/CognitoUri
-  FsConfig:
-    Type: String
-    Default: "{{resolve:secretsmanager:fs-config}}"
   ApiDomain:
     Type: 'AWS::SSM::Parameter::Value<String>'
     Description: The Api domain
@@ -22,7 +19,7 @@ Parameters:
   CustomDomainBasePath:
     Type: String
     Description: Base path mapping in CustomDomain
-    Default: courses
+    Default: /vms/presentations
   Suffix:
     Type: String
     Default: ''
@@ -41,7 +38,7 @@ Resources:
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
 
-  CurrentlyTaughtCoursesFunctionRole:
+  NvaVideoBrowserFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -63,25 +60,21 @@ Resources:
                   - logs:PutLogEvents
                 Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:*'
 
-  CurrentlyTaughtCoursesFunction:
+  NvaVideoPresentationsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: courses-rest
-      Handler: no.sikt.nva.fs.CoursesByInstitutionOfLoggedInUserHandler::handleRequest
-      Role: !GetAtt CurrentlyTaughtCoursesFunctionRole.Arn
-      Environment:
-        Variables:
-          FS_CONFIG: !Ref FsConfig
-          ALLOWED_ORIGIN: '*'
+      CodeUri: video-presentations-rest
+      Handler: no.sikt.nva.vms.browser.VideoBrowserHandler::handleRequest
+      Role: !GetAtt NvaVideoPresentationsFunctionRole.Arn
     Events:
       GetEvent:
         Type: Api
         Properties:
           Path: /
           Method: get
-          RestApiId: !Ref NvaCoursesApi
+          RestApiId: !Ref NvaVideoPresentationsApi
 
-  NvaCoursesApi:
+  NvaVideoPresentationsApi:
     Type: AWS::Serverless::Api
     Properties:
       AccessLogSetting:
@@ -120,7 +113,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - apigateway:POST
-                Resource: !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/${NvaCoursesApi}/deployments'
+                Resource: !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/${NvaVideoPresentationsApi}/deployments'
 
   # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html
   ApiGatewayCreateDeploymentLambda:
@@ -155,14 +148,14 @@ Resources:
     Type: AWS::CloudFormation::CustomResource
     Properties:
       ServiceToken: !GetAtt ApiGatewayCreateDeploymentLambda.Arn
-      RestApiId: !Ref NvaCoursesApi
-      StageName: !Ref NvaCoursesApi.Stage
+      RestApiId: !Ref NvaVideoPresentationsApi
+      StageName: !Ref NvaVideoPresentationsApi.Stage
       Timestamp: '${BUILD_TIMESTAMP}'
       AuthorizerArn: !Ref CognitoAuthorizerArn
 
   #===========================BasePathMappings========================================================
 
-  NvaCoursesBasePathMapping:
+  NvaVideoPresentationsBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
       BasePath:
@@ -171,5 +164,5 @@ Resources:
         - !Sub ${CustomDomainBasePath}-${Suffix}
         - !Sub ${CustomDomainBasePath}
       DomainName: !Ref ApiDomain
-      RestApiId: !Ref NvaCoursesApi
-      Stage: !Ref NvaCoursesApi.Stage
+      RestApiId: !Ref NvaVideoPresentationsApi
+      Stage: !Ref NvaVideoPresentationsApi.Stage
