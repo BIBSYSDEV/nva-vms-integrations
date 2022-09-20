@@ -22,6 +22,7 @@ public class KalturaClient {
     private static final Logger logger = LoggerFactory.getLogger(KalturaClient.class);
     private final String adminSecret;
     private final Integer adminId;
+
     private final String userId;
     private final Configuration config;
 

@@ -27,7 +27,7 @@ public class KalturaClientTest {
     void init() {
         mock = new KalturaMock();
         client = new KalturaClient(mock.getClientServiceUrl().toString(), randomString(), randomInteger(),
-                                    randomString(), randomInteger(), randomInteger());
+                                   randomString(), randomInteger(), randomInteger());
     }
 
     @Test
@@ -56,14 +56,14 @@ public class KalturaClientTest {
         var actualEntries = client.getMediaEntries(clientUserId, 10, 0);
 
         var expectedPresentationsIdList = expectedEntries.stream()
-                                              .map(MediaEntryMock::getId)
+                                              .map(FakeMediaEntry::getId)
                                               .collect(Collectors.toList());
         var actualPresentationsIdList = actualEntries.stream()
                                             .map(BaseEntry::getId)
                                             .collect(Collectors.toList());
 
         var expectedPresentationsDownloadUrlList = expectedEntries.stream()
-                                                       .map(MediaEntryMock::getDownloadUrl)
+                                                       .map(FakeMediaEntry::getDownloadUrl)
                                                        .collect(Collectors.toList());
         var actualPresentationsDownloadUrlList = actualEntries.stream()
                                                      .map(BaseEntry::getDownloadUrl)

@@ -18,9 +18,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import no.sikt.nva.vms.kaltura.MediaEntryMock.OperationAttribute;
-import no.sikt.nva.vms.kaltura.model.KalturaEntriesResponse;
-import no.sikt.nva.vms.kaltura.model.KalturaIdNotFoundResponse;
+import no.sikt.nva.vms.kaltura.FakeMediaEntry.OperationAttribute;
 import no.unit.nva.stubs.WiremockHttpClient;
 
 public class KalturaMock {
@@ -28,7 +26,7 @@ public class KalturaMock {
     public static final String KALTURA_GET_SINGLE_MEDIA_ENTRY_PATH = "/api_v3/service/media/action/get";
     public static final String KALTURA_GET_ENTRIES_PATH = "/api_v3/service/media/action/list";
     public static final String LIST_RESPONSE_TYPE = "KalturaMediaListResponse";
-    private final Map<String, MediaEntryMock> singleEntryMap;
+    private final Map<String, FakeMediaEntry> singleEntryMap;
     private String singleEntryId;
     private WireMockServer server;
     private HttpClient httpClient;
@@ -47,7 +45,7 @@ public class KalturaMock {
         return clientServiceUrl;
     }
 
-    public List<MediaEntryMock> createClientWithEntries() {
+    public List<FakeMediaEntry> createClientWithEntries() {
         var entriesToUser = createRandomMediaEntryList();
         addResponseForFetchingEntries(
             String.valueOf(new KalturaEntriesResponse(entriesToUser, entriesToUser.size(), LIST_RESPONSE_TYPE)));
@@ -70,11 +68,11 @@ public class KalturaMock {
 
     public String createClientWithInvalidAdminSecret() {
         singleEntryId = randomString();
-        addResponseForFetchingEntries(createKalturaApiExceptionResponseBody().toString());
+        addResponseForFetchingSingleMediaEntry(createKalturaApiExceptionResponseBody().toString());
         return singleEntryId;
     }
 
-    public MediaEntryMock getMediaEntry() {
+    public FakeMediaEntry getMediaEntry() {
         return singleEntryMap.get(singleEntryId);
     }
 
@@ -85,17 +83,10 @@ public class KalturaMock {
         httpClient = WiremockHttpClient.create();
     }
 
-    /**
-     * Both clientUserId and creatorId are feideId.
-     */
-    private String createCreatorAndClientId() {
-        return randomString();
-    }
-
-    private MediaEntryMock createRandomMediaEntry() {
-        return new MediaEntryMock(randomInteger(), randomString(), randomString(), randomString(), randomBoolean(),
+    private FakeMediaEntry createRandomMediaEntry() {
+        return new FakeMediaEntry(randomInteger(), randomString(), randomString(), randomString(), randomBoolean(),
                                   randomString(), randomString(), randomString(), randomInteger(), randomInteger(),
-                                  createCreatorAndClientId(), randomString(), randomInteger(), randomString(),
+                                  randomString(), randomString(), randomInteger(), randomString(),
                                   randomInteger(), randomString(), randomString(), randomString(), randomInteger(),
                                   randomString(), randomInteger(), randomInteger(), randomInteger(), randomString(),
                                   randomString(), createOperationAttributeList(), randomString(), randomString(),
@@ -107,18 +98,16 @@ public class KalturaMock {
                                   randomInteger(), randomInteger(), randomInteger(), randomInteger(), randomString(),
                                   randomString(), randomString(), randomString(), randomString(), randomInteger(),
                                   randomInteger(), randomInteger(), randomString(), randomInteger(), randomString(),
-                                  randomString(), createRandomList(), randomString(), randomString());
+                                  randomString(), new ArrayList<>(), randomString(), randomString());
     }
 
-    private List<MediaEntryMock> createRandomMediaEntryList() {
-        return IntStream.range(0, randomInteger(10) + 1)
+    private List<FakeMediaEntry> createRandomMediaEntryList() {
+        var minMediaEntries = 0;
+        var maxMediaEntries = 10;
+        return IntStream.range(minMediaEntries, randomInteger(maxMediaEntries) + minMediaEntries)
                    .boxed()
                    .map(item -> createRandomMediaEntry())
                    .collect(Collectors.toList());
-    }
-
-    private ArrayList<String> createRandomList() {
-        return new ArrayList<>();
     }
 
     private ArrayList<OperationAttribute> createOperationAttributeList() {

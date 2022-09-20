@@ -1,4 +1,3 @@
-
 dependencies {
     api(libs.nva.datamodel) {
         exclude group: 'com.github.bibsysdev', module: 'nva-commons'
@@ -13,13 +12,11 @@ dependencies {
     implementation libs.bundles.logging
 
     implementation libs.bundles.jackson
-
-    implementation 'com.kaltura:kalturaApiClient:18.12.0'
+    implementation libs.kaltura
 
     testImplementation libs.nva.testutils
     testImplementation libs.nva.json
 }
 
-test {
-}
+test {}
 

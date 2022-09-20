@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import no.unit.nva.commons.json.JsonSerializable;
 
-public class MediaEntryMock implements JsonSerializable {
+public class FakeMediaEntry implements JsonSerializable {
 
     public int accessControlId;
     public String adminTags;
@@ -81,7 +81,7 @@ public class MediaEntryMock implements JsonSerializable {
     public String externalSourceType;
 
     @JsonCreator
-    public MediaEntryMock(int accessControlId, String adminTags, String application, String applicationVersion,
+    public FakeMediaEntry(int accessControlId, String adminTags, String application, String applicationVersion,
                           boolean blockAutoTranscript, String capabilities, String categories, String categoriesIds,
                           int conversionProfileId, int createdAt, String creatorId, String description,
                           int displayInSearch, String downloadUrl, int endDate, String entitledUsersEdit,
@@ -223,7 +223,7 @@ public class MediaEntryMock implements JsonSerializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MediaEntryMock that = (MediaEntryMock) o;
+        FakeMediaEntry that = (FakeMediaEntry) o;
         return accessControlId == that.accessControlId
                && blockAutoTranscript == that.blockAutoTranscript
                && conversionProfileId == that.conversionProfileId
@@ -302,7 +302,7 @@ public class MediaEntryMock implements JsonSerializable {
         return toJsonString();
     }
 
-    public class OperationAttribute {
+    public static class OperationAttribute {
 
         public String objectType;
 

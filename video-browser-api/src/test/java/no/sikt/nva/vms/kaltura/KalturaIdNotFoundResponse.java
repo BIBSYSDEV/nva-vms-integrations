@@ -1,4 +1,4 @@
-package no.sikt.nva.vms.kaltura.model;
+package no.sikt.nva.vms.kaltura;
 
 import java.util.Map;
 import java.util.Objects;
