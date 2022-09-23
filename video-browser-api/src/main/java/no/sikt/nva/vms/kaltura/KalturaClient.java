@@ -5,7 +5,6 @@ import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
 import com.kaltura.client.enums.SessionType;
 import com.kaltura.client.services.MediaService;
-import com.kaltura.client.types.FilterPager;
 import com.kaltura.client.types.MediaEntry;
 import com.kaltura.client.types.MediaEntryFilter;
 import java.util.ArrayList;
@@ -38,19 +37,18 @@ public class KalturaClient {
         config.setConnectTimeout(connectTimout);
     }
 
-    public List<MediaEntry> getMediaEntries(String user, int limit, int offset) throws Exception {
+    public MediaEntriesResult getMediaEntries(String user) throws Exception {
         MediaEntryFilter filter = new MediaEntryFilter();
         filter.setCreatorIdEqual(user);
-        FilterPager pager = new FilterPager();
-        pager.setPageSize(limit);
-        pager.setPageIndex(offset);
         final CountDownLatch doneSignal = new CountDownLatch(1);
 
-        List<MediaEntry> mediaEntries = new ArrayList<>();
+        MediaEntriesResult mediaEntries = new MediaEntriesResult();
+        mediaEntries.mediaEntries = new ArrayList<>();
 
-        MediaService.ListMediaBuilder requestBuilder = MediaService.list(filter, pager);
+        MediaService.ListMediaBuilder requestBuilder = MediaService.list(filter);
         requestBuilder.setCompletion(response -> {
-            mediaEntries.addAll(response.results.getObjects());
+            mediaEntries.mediaEntries.addAll(response.results.getObjects());
+            mediaEntries.totalCount = response.results.getTotalCount();
             doneSignal.countDown();
         });
         Client client = getClient(SessionType.ADMIN);

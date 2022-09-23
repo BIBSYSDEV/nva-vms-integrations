@@ -1,14 +1,15 @@
 package no.sikt.nva.vms.browser;
 
+import com.amazonaws.services.lambda.runtime.Context;
 import java.net.URI;
 import java.util.List;
 
 public class InMemoryVideoProvider implements VideoProvider {
-    private final URI context;
+    private final String context;
     private final URI baseUri;
     private final List<VideoPresentation> videoPresentations;
 
-    public InMemoryVideoProvider(final URI context,
+    public InMemoryVideoProvider(final String context,
                                  final URI baseUri,
                                  final List<VideoPresentation> videoPresentations) {
         this.context = context;
@@ -33,8 +34,4 @@ public class InMemoryVideoProvider implements VideoProvider {
                                  videoPresentations.subList(offset, lastIndexOfVideoOnThisPage));
     }
 
-    @Override
-    public List<VideoPresentation> fetchAllVideos() {
-        return videoPresentations;
-    }
 }

@@ -1,0 +1,30 @@
+{
+  "institutions": [{
+    "id": "kaltura.no",
+    "kaltura": {
+      "kalturaClientServiceUrl": "@@KALTURA_SERVICE_URL@@",
+      "kalturaClientAdminSecret": "someValue",
+      "kalturaClientAdminID": 5555,
+      "kalturaClientSubAdminID": 44444,
+      "kalturaClientUserID": "randomId",
+      "kalturaClientConnectTimeout": 3333,
+      "kalturaClientReadTimeout": 2222,
+      "kalturaPublicAccessControlId": 1111,
+      "kalturaPrivateAccessControlId": 20045,
+      "kalturaUiconf": 12345,
+      "kalturaUserIdFormat": "someFormat"
+    }
+  }, {
+    "id": "panopto.no",
+    "panopto": {
+      "instanceEndpoint": "https://example.com/",
+      "username": "someValue",
+      "password": "randomPassword",
+      "identityProviderInstanceName": "someProvider",
+      "serverFqdn": "https://example.com/",
+      "applicationKey": "someKey",
+      "clientId": "someId",
+      "clientSecret": "clientSecret"
+    }
+  }]
+}

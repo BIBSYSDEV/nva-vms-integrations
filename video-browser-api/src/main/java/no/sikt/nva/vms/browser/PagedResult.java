@@ -15,16 +15,17 @@ public class PagedResult<T> {
     private static final String SIZE = "size";
     private static final String OFFSET = "offset";
     @JsonProperty("@context")
-    private final URI context;
+    private final String context;
     private final URI id;
-    private final List<T> results;
+    private final List<VideoPresentation> results;
     private final int totalSize;
     private final URI nextResults;
     private final URI previousResults;
 
     @JsonCreator
-    public PagedResult(@JsonProperty("@context") final URI context, @JsonProperty("id") final URI id,
-                       @JsonProperty("results") final List<T> results, @JsonProperty("totalSize") final int totalSize,
+    public PagedResult(@JsonProperty("@context") final String context, @JsonProperty("id") final URI id,
+                       @JsonProperty("results") final List<VideoPresentation> results,
+                       @JsonProperty("totalSize") final int totalSize,
                        @JsonProperty("nextResults") final URI nextResults,
                        @JsonProperty("previousResults") final URI previousResults) {
         this.context = context;
@@ -36,8 +37,9 @@ public class PagedResult<T> {
     }
 
     @SuppressWarnings("PMD")
-    public PagedResult(final URI context, final URI baseUri, final int pageSize, final int offset, final int totalSize,
-                       final List<T> results) {
+    public PagedResult(final String context, final URI baseUri, final int pageSize, final int offset,
+                       final int totalSize,
+                       final List<VideoPresentation> results) {
         this.context = context;
         this.id = UriWrapper.fromUri(baseUri)
                       .addQueryParameter(SIZE, Integer.toString(pageSize))
@@ -75,7 +77,7 @@ public class PagedResult<T> {
                    .getUri();
     }
 
-    public URI getContext() {
+    public String getContext() {
         return context;
     }
 
@@ -83,7 +85,7 @@ public class PagedResult<T> {
         return id;
     }
 
-    public List<T> getResults() {
+    public List<VideoPresentation> getResults() {
         return results;
     }
 

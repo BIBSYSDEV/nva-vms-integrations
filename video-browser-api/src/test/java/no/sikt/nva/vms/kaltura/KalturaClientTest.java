@@ -53,8 +53,7 @@ public class KalturaClientTest {
     void shouldReturnUserEntriesFromKaltura() throws Exception {
         var expectedEntries = mock.createClientWithEntries();
         var clientUserId = expectedEntries.get(0).getCreatorId();
-        var actualEntries = client.getMediaEntries(clientUserId, 10, 0);
-
+        var actualEntries = client.getMediaEntries(clientUserId).mediaEntries;
         var expectedPresentationsIdList = expectedEntries.stream()
                                               .map(FakeMediaEntry::getId)
                                               .collect(Collectors.toList());
