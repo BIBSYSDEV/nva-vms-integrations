@@ -65,40 +65,4 @@ public final class VideoPresentation implements JsonSerializable {
                && Objects.equals(thumbnailUrl, that.thumbnailUrl)
                && Objects.equals(contentIdentifier, that.contentIdentifier);
     }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public Integer getTimeRecorded() {
-        return timeRecorded;
-    }
-
-    public String getPresenter() {
-        return presenter;
-    }
-
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getStreamingUrl() {
-        return streamingUrl;
-    }
-
-    public String getThumbnailUrl() {
-        return thumbnailUrl;
-    }
-
-    public String getContentIdentifier() {
-        return contentIdentifier;
-    }
 }

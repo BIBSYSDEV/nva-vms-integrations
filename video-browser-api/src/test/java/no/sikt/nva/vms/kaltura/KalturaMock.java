@@ -102,9 +102,9 @@ public class KalturaMock {
     }
 
     private List<FakeMediaEntry> createRandomMediaEntryList() {
-        var minMediaEntries = 0;
+        var minMediaEntries = 1;
         var maxMediaEntries = 10;
-        return IntStream.range(minMediaEntries, randomInteger(maxMediaEntries) + 1)
+        return IntStream.range(0, randomInteger(maxMediaEntries) + minMediaEntries)
                    .boxed()
                    .map(item -> createRandomMediaEntry())
                    .collect(Collectors.toList());

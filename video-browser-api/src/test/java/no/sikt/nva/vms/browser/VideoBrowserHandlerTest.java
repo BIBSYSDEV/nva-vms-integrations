@@ -9,7 +9,6 @@ import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static no.sikt.nva.vms.browser.VideoBrowserHandler.NVA_APPLICATION_DOMAIN_ENV_NAME;
 import static no.sikt.nva.vms.kaltura.KalturaMock.KALTURA_GET_ENTRIES_PATH;
-import static no.sikt.nva.vms.util.ExpectedResultTestClass.NEXT_RESULTS_WITH_OFFSET_0;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.NEXT_RESULTS_WITH_OFFSET_10;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.PREVIOUS_RESULTS_WITH_OFFSET_10;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.VIDEO_PRESENTATION;
@@ -58,13 +57,14 @@ public class VideoBrowserHandlerTest {
     public static final String OFFSET_PARAMETER_NAME = "offset";
     public static final String API_HOST_VALUE = "api.sandbox.nva.aws.unit.no";
     public static final String OFFSET_10 = "10";
+    public static final String OFFSET_20 = "20";
+    public static final Integer STATUS_CODE_500 = 500;
     private static final ObjectMapper OBJECT_MAPPER = JsonUtils.dtoObjectMapper;
     private static final String ALLOWED_ORIGIN_ENV_NAME = "ALLOWED_ORIGIN";
     private static final String ALLOWED_ORIGIN_ALL = "*";
     private static final String DOMAIN_NAME_REQUEST_CONTEXT_PARAMETER_NAME = "domainName";
     private static final String PATH_REQUEST_CONTEXT_PARAMETER_NAME = "path";
     private static final String APPLICATION_JSON_CONTENT_TYPE_VALUE = "application/json";
-    public static final String OFFSET_20 = "20";
     private static final String OFFSET_30 = "30";
     private final Environment environment = mock(Environment.class);
     private final ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -86,11 +86,8 @@ public class VideoBrowserHandlerTest {
 
     @Test
     void shouldReturnPagedResultForKalturaWithCorrectResultsSizeAndNextResult() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("videoPresentationsResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "videoPresentationsResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
         var actualPagedResult = getBodyObject(response.getBody());
 
@@ -101,11 +98,8 @@ public class VideoBrowserHandlerTest {
 
     @Test
     void shouldReturnPagedResultForKalturaWithCorrectResultsSizeAndPreviousResult() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, OFFSET_10, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(OFFSET_10, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("videoPresentationsResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest(DEFAULT_PAGE_SIZE, OFFSET_10, TEST_USER_EMAIL_FOR_KALTURA, OFFSET_10,
+                      "videoPresentationsResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
         var actualPagedResult = getBodyObject(response.getBody());
 
@@ -116,11 +110,8 @@ public class VideoBrowserHandlerTest {
 
     @Test
     void shouldReturnPagedResultWithCorrectVideoPresentation() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("singleVideoPresentationResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "singleVideoPresentationResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
         var actualPagedResult = getBodyObject(response.getBody());
         var actualVideoPresentation = actualPagedResult.getResults().get(0);
@@ -132,11 +123,8 @@ public class VideoBrowserHandlerTest {
 
     @Test
     void shouldReturnNullForNextResultsWhenSumOfOffsetAndPageSizeIsLargerThanTotalSize() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, OFFSET_20, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("videoPresentationsResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest(DEFAULT_PAGE_SIZE, OFFSET_20, TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "videoPresentationsResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
         var actualPagedResult = getBodyObject(response.getBody());
 
@@ -144,25 +132,17 @@ public class VideoBrowserHandlerTest {
     }
 
     @Test
-    void shouldUseDefaultOffsetIfOffsetIsLargerThanTotalSize() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, OFFSET_30, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("videoPresentationsResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+    void shouldThrowBadRequestExceptionWhenOffsetIsLargerThanVideoPresentationsSize() throws IOException {
+        constructTest(DEFAULT_PAGE_SIZE, OFFSET_30, TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "videoPresentationsResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-        var actualPagedResult = getBodyObject(response.getBody());
 
-        assertThat(actualPagedResult.getNextResults(), is(equalTo(NEXT_RESULTS_WITH_OFFSET_0)));
+        assertThat(response.getStatusCode(), is(equalTo(STATUS_CODE_500)));
     }
 
     @Test
     void shouldReturnBadRequestIfPageSizeOrOffsetAreNegative() throws IOException {
-        var input = createRequest("-10", "-10", TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_KALTURA);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("singleVideoPresentationResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest("-10", "0", TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET, "singleVideoPresentationResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
 
         assertThat(response.getStatusCode(), is(equalTo(HTTP_BAD_REQUEST)));
@@ -170,14 +150,20 @@ public class VideoBrowserHandlerTest {
 
     @Test
     void temporaryTestWhilePanoptoFunctionalityIsNotImplemented() throws IOException {
-        var input = createRequest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_PANOPTO);
-        stubRequestForVideoPresentations(DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_PANOPTO);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString("singleVideoPresentationResponse.json"));
-        VideoBrowserHandler handler = createVideoBrowserHandler();
-        handler.handleRequest(input, output, context);
+        constructTest(DEFAULT_PAGE_SIZE, DEFAULT_OFFSET, TEST_USER_EMAIL_FOR_PANOPTO, DEFAULT_OFFSET,
+                      "singleVideoPresentationResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
 
         assertThat(response.getStatusCode(), is(equalTo(HTTP_OK)));
+    }
+
+    private void constructTest(String defaultPageSize, String offset20, String testUserEmailForKaltura,
+                               String defaultOffset, String file) throws IOException {
+        var input = createRequest(defaultPageSize, offset20, testUserEmailForKaltura);
+        stubRequestForVideoPresentations(defaultOffset, testUserEmailForKaltura);
+        stubRequestForFetchingEntriesFromKalturaClient(jsonToString(file));
+        VideoBrowserHandler handler = createVideoBrowserHandler();
+        handler.handleRequest(input, output, context);
     }
 
     private String jsonToString(String file) {
@@ -207,16 +193,16 @@ public class VideoBrowserHandlerTest {
     }
 
     private void stubRequestForVideoPresentations(String offset, String responseBody) {
-        stubFor(get(urlPathEqualTo(VMS_PRESENTATIONS_PATH))
-                    .withQueryParam(PAGE_SIZE_PARAM, WireMock.equalTo(DEFAULT_PAGE_SIZE))
+        stubFor(get(urlPathEqualTo(VMS_PRESENTATIONS_PATH)).withQueryParam(PAGE_SIZE_PARAM,
+                                                                           WireMock.equalTo(DEFAULT_PAGE_SIZE))
                     .withQueryParam(PAGE_OFFSET_PARAM, WireMock.equalTo(offset))
                     .willReturn(
                         ok().withHeader(CONTENT_TYPE, APPLICATION_JSON_CONTENT_TYPE_VALUE).withBody(responseBody)));
     }
 
     private void stubRequestForFetchingEntriesFromKalturaClient(String responseBody) {
-        stubFor(post(urlPathEqualTo(KALTURA_GET_ENTRIES_PATH))
-                    .withHeader("Accept-Charset", WireMock.equalTo("utf-8,ISO-8859-1;q=0.7,*;q=0.5"))
+        stubFor(post(urlPathEqualTo(KALTURA_GET_ENTRIES_PATH)).withHeader("Accept-Charset", WireMock.equalTo(
+                "utf-8,ISO-8859-1;q=0.7,*;q=0.5"))
                     .withHeader("Accept", WireMock.equalTo("application/json"))
                     .willReturn(ok().withBody(responseBody)));
     }

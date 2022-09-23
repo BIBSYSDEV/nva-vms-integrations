@@ -1,9 +1,8 @@
 package no.sikt.nva.vms.browser.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import no.unit.nva.commons.json.JsonSerializable;
 
-public class Kaltura implements JsonSerializable {
+public class Kaltura {
 
     private String kalturaClientServiceUrl;
     private String kalturaClientAdminSecret;

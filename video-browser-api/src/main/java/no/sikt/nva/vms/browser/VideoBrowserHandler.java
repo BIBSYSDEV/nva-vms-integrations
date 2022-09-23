@@ -19,11 +19,13 @@ import nva.commons.core.Environment;
 import nva.commons.core.JacocoGenerated;
 import nva.commons.core.paths.UriWrapper;
 import nva.commons.secrets.SecretsReader;
+import org.jetbrains.annotations.Nullable;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<VideoPresentation>> {
 
     public static final String KALTURA_CLIENT_CONFIG_SECRET_NAME = "videoIntegrationConfig";
+    public static final String AT_SIGN = "@";
     /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "ApiDomain";
     @SuppressWarnings("PMD")
     private static final String NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE = "Negative offset and/or size values are"
@@ -33,8 +35,8 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     private static final String DEFAULT_SIZE = "10";
     private static final String DEFAULT_OFFSET = "0";
     private static final String HTTPS_SCHEME = UriWrapper.HTTPS + "://";
+    public static final String NO_CONFIG_FOR_INSTITUTION_MESSAGE = "NO config for your institution";
     private final URI apiBaseUrl;
-
     private final SecretsReader secretsReader;
 
     @JacocoGenerated
@@ -48,8 +50,6 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         this.apiBaseUrl = getBaseUrlFromHost(environment);
     }
 
-    /**TODO: implement Panopto**/
-
     @Override
     protected PagedResult<VideoPresentation> processInput(final Void input, final RequestInfo requestInfo,
                                                           final Context context)
@@ -57,28 +57,34 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
         var pageSize = getPageSize(requestInfo);
         var offset = getOffset(requestInfo);
-
-        if (pageSize < 0 || offset < 0) {
-            throw new BadRequestException(NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE, HTTP_BAD_REQUEST);
-        }
-
         var username = requestInfo.getUserName();
-        var institutionFeideDomain = getInstitutionFeideDomain(username);
-        var videoIntegrationConfig = getVideoIntegrationConfig();
-        var institutionConfigKaltura = attempt(
-            () -> getInstitution(videoIntegrationConfig, institutionFeideDomain)).orElseThrow().getKaltura();
+        validatePageSizeAndOffset(pageSize, offset);
 
-        if (institutionConfigKaltura != null) {
-            return attempt(() -> fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
-                                                                            institutionConfigKaltura)).orElseThrow();
-        } else {
-            return null;
-        }
+        return getVideoPresentationPagedResult(context, pageSize, offset, username);
     }
 
     @Override
     protected Integer getSuccessStatusCode(Void input, PagedResult<VideoPresentation> output) {
         return HTTP_OK;
+    }
+
+    private void validatePageSizeAndOffset(Integer pageSize, Integer offset) throws BadRequestException {
+        if (pageSize < 0 || offset < 0) {
+            throw new BadRequestException(NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE, HTTP_BAD_REQUEST);
+        }
+    }
+
+    @Nullable
+    private PagedResult<VideoPresentation> getVideoPresentationPagedResult(Context context, Integer pageSize,
+                                                                           Integer offset, String username) {
+        Institution institution = getInstitution(username);
+        if (institution.getKaltura() != null) {
+            return attempt(() -> fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
+                                                                            institution.getKaltura())).orElseThrow();
+        } else {
+            /*TODO: implement Panopto**/
+            return null;
+        }
     }
 
     private PagedResult<VideoPresentation> fetchVideoPresentationsWithKalturaProvider(Context context, Integer pageSize,
@@ -95,8 +101,8 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
                                  kaltura.getKalturaClientConnectTimeout(), kaltura.getKalturaClientReadTimeout());
     }
 
-    private String getInstitutionFeideDomain(String institution) {
-        return (String) Array.get(institution.split("@"), 1);
+    private String getInstitutionFeideDomainFromEmail(String institutionsEmail) {
+        return (String) Array.get(institutionsEmail.split(AT_SIGN), 1);
     }
 
     private Integer getPageSize(RequestInfo requestInfo) {
@@ -112,7 +118,8 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         return secretsReader.fetchPlainTextSecret(KALTURA_CLIENT_CONFIG_SECRET_NAME);
     }
 
-    private Institution getInstitution(String config, String institutionId) throws JsonProcessingException {
+    private Institution getMatchingInstitutionFromConfig(String config, String institutionId)
+        throws JsonProcessingException {
         return JsonUtils.dtoObjectMapper.readValue(config, VideoProviderConfig.class)
                    .getInstitutions()
                    .stream()
@@ -121,16 +128,15 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
                    .orElseThrow();
     }
 
-    private URI getBaseUrlFromHost(Environment environment) {
-        return UriWrapper.fromUri(HTTPS_SCHEME + environment.readEnv(NVA_APPLICATION_DOMAIN_ENV_NAME)).getUri();
+    private Institution getInstitution(String username) {
+        var institutionFeideDomain = getInstitutionFeideDomainFromEmail(username);
+        var videoIntegrationConfig = getVideoIntegrationConfig();
+        return attempt(
+            () -> getMatchingInstitutionFromConfig(videoIntegrationConfig, institutionFeideDomain))
+                   .orElseThrow();
     }
 
-    @SuppressWarnings("PMD")
-    @JacocoGenerated
-    private URI generateId(final URI baseRequestUri, final int size, final int offset) {
-        return UriWrapper.fromUri(baseRequestUri)
-                   .addQueryParameter(SIZE, Integer.toString(size))
-                   .addQueryParameter(OFFSET, Integer.toString(offset))
-                   .getUri();
+    private URI getBaseUrlFromHost(Environment environment) {
+        return UriWrapper.fromUri(HTTPS_SCHEME + environment.readEnv(NVA_APPLICATION_DOMAIN_ENV_NAME)).getUri();
     }
 }

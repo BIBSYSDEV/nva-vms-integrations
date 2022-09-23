@@ -10,12 +10,14 @@ import nva.commons.core.paths.UriWrapper;
 
 public class ExpectedResultTestClass {
 
+    /**
+     * Following constants are used as test data for VideoBrowserHandlerTest.
+     */
     public static final int TOTAL_SIZE = 22;
     public static final URI NEXT_RESULTS_WITH_OFFSET_0 = UriWrapper.fromHost(API_HOST_VALUE)
                                                              .addQueryParameter(SIZE_PARAMETER_NAME, DEFAULT_PAGE_SIZE)
                                                              .addQueryParameter(OFFSET_PARAMETER_NAME, "10")
                                                              .getUri();
-
     public static final URI NEXT_RESULTS_WITH_OFFSET_10 = UriWrapper.fromHost(API_HOST_VALUE)
                                                               .addQueryParameter(SIZE_PARAMETER_NAME, DEFAULT_PAGE_SIZE)
                                                               .addQueryParameter(OFFSET_PARAMETER_NAME, "20")

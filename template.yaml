@@ -1,32 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Lambda creating handle for publications
+  Lambda for fetching video presentations from VMS
 
 Parameters:
-  CognitoAuthorizerArn:
-    Type: 'AWS::SSM::Parameter::Value<String>'
-    Description: Reference to Cognito UserPool for the stage
-    Default: CognitoAuthorizerArn
-  CognitoUri:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: URI to the OAUTH endpoint of the Cognito client
-    Default: /NVA/CognitoUri
   ApiDomain:
     Type: 'AWS::SSM::Parameter::Value<String>'
     Description: The Api domain
     Default: /NVA/ApiDomain
+  DlrApplicationDomain:
+    Type: 'AWS::SSM::Parameter::Value<String>'
+    Description: The DLR Application domain
+    Default: /NVA/DlrApplicationDomain
   CustomDomainBasePath:
     Type: String
     Description: Base path mapping in CustomDomain
-    Default: /vms/presentations
+    Default: vms
   Suffix:
     Type: String
     Default: ''
     Description: Suffix used for naming resources for feature branches to avoid conflicts.
-
-Conditions:
-  WithSuffix: !Not [ !Equals [ !Ref Suffix, '' ] ]
 
 Globals:
   Function:
@@ -38,7 +31,7 @@ Resources:
   ApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
 
-  NvaVideoBrowserFunctionRole:
+  VMSIntegrationServiceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -59,28 +52,48 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*:*'
+        - PolicyName: SecretPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetResourcePolicy
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:videoIntegrationConfig*'
 
-  NvaVideoPresentationsFunction:
+  VMSIntegrationServiceFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: video-presentations-rest
-      Handler: no.sikt.nva.vms.browser.VideoBrowserHandler::handleRequest
-      Role: !GetAtt NvaVideoPresentationsFunctionRole.Arn
-    Events:
-      GetEvent:
-        Type: Api
-        Properties:
-          Path: /
-          Method: get
-          RestApiId: !Ref NvaVideoPresentationsApi
+      CodeUri: video-browser-api
+      Handler: no.sikt.nva.vms.VideoBrowserHandler::handleRequest
+      Role: !GetAtt VMSIntegrationServiceRole.Arn
+      Environment:
+        Variables:
+          ApiDomain: !Ref ApiDomain
+          DlrApplicationDomain: !Ref DlrApplicationDomain
+          ALLOWED_ORIGIN: '*'
+      Events:
+        LtiLaunchRequest:
+          Type: Api
+          Properties:
+            Path: /presentations/{offset}{pageSize}
+            Method: get
+            RestApiId: !Ref VMSServiceApi
 
-  NvaVideoPresentationsApi:
+  VMSServiceApi:
     Type: AWS::Serverless::Api
     Properties:
       AccessLogSetting:
         DestinationArn: !GetAtt ApiAccessLogGroup.Arn
         Format: '{ "apiId": "$context.apiId", "requestId": "$context.requestId", "requestTime": "$context.requestTime", "requestTimeEpoch": "$context.requestTimeEpoch", "httpMethod": "$context.httpMethod", "path": "$context.path", "status": "$context.status",  "error.message": "$context.error.message" }'
       StageName: Prod
+      MethodSettings:
+        - ResourcePath: vms/presentations/{offset}{pageSize}
+          HttpMethod: get
       EndpointConfiguration: REGIONAL
       DefinitionBody:
         'Fn::Transform':
@@ -88,81 +101,12 @@ Resources:
           Parameters:
             Location: ./docs/openapi.yaml
 
-  #============================ Deploy API ============================================================================#
-  # This solves the problem described here:
-  # https://stackoverflow.com/questions/41423439/cloudformation-doesnt-deploy-to-api-gateway-stages-on-update
-  #====================================================================================================================#
-  ApiGatewayCreateDeploymentLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-      Policies:
-        - PolicyName: ApiGatewayAdmin
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - apigateway:POST
-                Resource: !Sub 'arn:aws:apigateway:${AWS::Region}::/restapis/${NvaVideoPresentationsApi}/deployments'
-
-  # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html
-  ApiGatewayCreateDeploymentLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.lambda_handler
-      MemorySize: 128
-      Timeout: 30
-      Role: !GetAtt ApiGatewayCreateDeploymentLambdaRole.Arn
-      Runtime: python3.8
-      Code:
-        ZipFile: |
-          import json, boto3
-          import cfnresponse
-          client = boto3.client('apigateway')
-          def lambda_handler(event, context):
-            responseData = {}
-            responseStatus = cfnresponse.SUCCESS
-            if event['RequestType'] == 'Update':
-              try:
-                properties = event['ResourceProperties']
-                response = client.create_deployment(
-                  restApiId=properties['RestApiId'],
-                  stageName=properties['StageName'],
-                  description='Deployed from Custom Resource'
-                )
-              except:
-                responseStatus = cfnresponse.FAILED
-            cfnresponse.send(event, context, responseStatus, responseData)
-
-  ApiGatewayCreateDeploymentCustomResource:
-    Type: AWS::CloudFormation::CustomResource
-    Properties:
-      ServiceToken: !GetAtt ApiGatewayCreateDeploymentLambda.Arn
-      RestApiId: !Ref NvaVideoPresentationsApi
-      StageName: !Ref NvaVideoPresentationsApi.Stage
-      Timestamp: '${BUILD_TIMESTAMP}'
-      AuthorizerArn: !Ref CognitoAuthorizerArn
-
   #===========================BasePathMappings========================================================
 
-  NvaVideoPresentationsBasePathMapping:
+  VMSServiceBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
-      BasePath:
-        !If
-        - WithSuffix
-        - !Sub ${CustomDomainBasePath}-${Suffix}
-        - !Sub ${CustomDomainBasePath}
+      BasePath: !Sub ${CustomDomainBasePath}
       DomainName: !Ref ApiDomain
-      RestApiId: !Ref NvaVideoPresentationsApi
-      Stage: !Ref NvaVideoPresentationsApi.Stage
+      RestApiId: !Ref VMSServiceApi
+      Stage: !Ref VMSServiceApi.Stage
