@@ -10,6 +10,9 @@ import java.net.URI;
 import no.sikt.nva.vms.browser.model.Institution;
 import no.sikt.nva.vms.browser.model.Kaltura;
 import no.sikt.nva.vms.browser.model.VideoProviderConfig;
+import no.sikt.nva.vms.browser.provider.IllegalInputException;
+import no.sikt.nva.vms.browser.provider.KalturaVideoProvider;
+import no.sikt.nva.vms.browser.provider.ProviderFailedException;
 import no.sikt.nva.vms.kaltura.KalturaClient;
 import no.unit.nva.commons.json.JsonUtils;
 import nva.commons.apigateway.ApiGatewayHandler;
@@ -35,7 +38,6 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     private static final String DEFAULT_SIZE = "10";
     private static final String DEFAULT_OFFSET = "0";
     private static final String HTTPS_SCHEME = UriWrapper.HTTPS + "://";
-    public static final String NO_CONFIG_FOR_INSTITUTION_MESSAGE = "NO config for your institution";
     private final URI apiBaseUrl;
     private final SecretsReader secretsReader;
 
@@ -76,11 +78,12 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
     @Nullable
     private PagedResult<VideoPresentation> getVideoPresentationPagedResult(Context context, Integer pageSize,
-                                                                           Integer offset, String username) {
+                                                                           Integer offset, String username)
+        throws BadRequestException {
         Institution institution = getInstitution(username);
         if (institution.getKaltura() != null) {
-            return attempt(() -> fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
-                                                                            institution.getKaltura())).orElseThrow();
+            return fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
+                                                              institution.getKaltura());
         } else {
             /*TODO: implement Panopto**/
             return null;
@@ -90,9 +93,15 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     private PagedResult<VideoPresentation> fetchVideoPresentationsWithKalturaProvider(Context context, Integer pageSize,
                                                                                       Integer offset, String username,
                                                                                       Kaltura configForKaltura)
-        throws Exception {
-        return new KalturaVideoProvider(context.toString(), getKalturaClient(configForKaltura), username,
-                                        apiBaseUrl).fetchVideoPresentations(pageSize, offset);
+        throws BadRequestException {
+        try {
+            return new KalturaVideoProvider(context.toString(), getKalturaClient(configForKaltura), username,
+                                            apiBaseUrl).fetchVideoPresentations(pageSize, offset);
+        } catch (ProviderFailedException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalInputException e) {
+            throw new BadRequestException(e.getMessage(), HTTP_BAD_REQUEST);
+        }
     }
 
     private KalturaClient getKalturaClient(Kaltura kaltura) {
@@ -132,8 +141,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         var institutionFeideDomain = getInstitutionFeideDomainFromEmail(username);
         var videoIntegrationConfig = getVideoIntegrationConfig();
         return attempt(
-            () -> getMatchingInstitutionFromConfig(videoIntegrationConfig, institutionFeideDomain))
-                   .orElseThrow();
+            () -> getMatchingInstitutionFromConfig(videoIntegrationConfig, institutionFeideDomain)).orElseThrow();
     }
 
     private URI getBaseUrlFromHost(Environment environment) {

@@ -25,8 +25,8 @@ public class KalturaClient {
     private final String userId;
     private final Configuration config;
 
-    public KalturaClient(String serviceUrl, String adminSecret, Integer adminId, String userId,
-                         Integer connectTimout, Integer readTimeout) {
+    public KalturaClient(String serviceUrl, String adminSecret, Integer adminId, String userId, Integer connectTimout,
+                         Integer readTimeout) {
 
         this.adminSecret = adminSecret;
         this.adminId = adminId;
@@ -37,24 +37,28 @@ public class KalturaClient {
         config.setConnectTimeout(connectTimout);
     }
 
-    public MediaEntriesResult getMediaEntries(String user) throws Exception {
+    public MediaEntriesResult getMediaEntries(String user) throws KalturaException {
         MediaEntryFilter filter = new MediaEntryFilter();
         filter.setCreatorIdEqual(user);
         final CountDownLatch doneSignal = new CountDownLatch(1);
 
         MediaEntriesResult mediaEntries = new MediaEntriesResult();
         mediaEntries.mediaEntries = new ArrayList<>();
+        try {
+            MediaService.ListMediaBuilder requestBuilder = MediaService.list(filter);
+            requestBuilder.setCompletion(response -> {
+                mediaEntries.mediaEntries.addAll(response.results.getObjects());
+                mediaEntries.totalCount = response.results.getTotalCount();
+                doneSignal.countDown();
+            });
 
-        MediaService.ListMediaBuilder requestBuilder = MediaService.list(filter);
-        requestBuilder.setCompletion(response -> {
-            mediaEntries.mediaEntries.addAll(response.results.getObjects());
-            mediaEntries.totalCount = response.results.getTotalCount();
-            doneSignal.countDown();
-        });
-        Client client = getClient(SessionType.ADMIN);
-        APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(client));
-        doneSignal.await();
-        return mediaEntries;
+            Client client = getClient(SessionType.ADMIN);
+            APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(client));
+            doneSignal.await();
+            return mediaEntries;
+        } catch (Exception e) {
+            throw new KalturaException("Interrupted waiting for response from Kaltura", e);
+        }
     }
 
     public MediaEntry getMediaEntry(String entryId) throws Exception {
@@ -86,6 +90,7 @@ public class KalturaClient {
      */
     public Client getClient(SessionType sessionType) throws Exception {
         Client client = new Client(config);
+
         var sessionId = client.generateSessionV2(adminSecret, userId, sessionType, adminId, 86_400, PRIVILEGES);
         client.setSessionId(sessionId);
         return client;

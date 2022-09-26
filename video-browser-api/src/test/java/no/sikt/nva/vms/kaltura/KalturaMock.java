@@ -18,7 +18,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import no.sikt.nva.vms.kaltura.FakeMediaEntry.OperationAttribute;
+import no.sikt.nva.vms.kaltura.model.FakeMediaEntry;
+import no.sikt.nva.vms.kaltura.model.FakeMediaEntry.OperationAttribute;
+import no.sikt.nva.vms.kaltura.model.KalturaEntriesResponse;
+import no.sikt.nva.vms.kaltura.model.KalturaIdNotFoundResponse;
 import no.unit.nva.stubs.WiremockHttpClient;
 
 public class KalturaMock {
@@ -66,12 +69,6 @@ public class KalturaMock {
         return singleEntryId;
     }
 
-    public String createClientWithInvalidAdminSecret() {
-        singleEntryId = randomString();
-        addResponseForFetchingSingleMediaEntry(createKalturaApiExceptionResponseBody().toString());
-        return singleEntryId;
-    }
-
     public FakeMediaEntry getMediaEntry() {
         return singleEntryMap.get(singleEntryId);
     }
@@ -102,7 +99,7 @@ public class KalturaMock {
     }
 
     private List<FakeMediaEntry> createRandomMediaEntryList() {
-        var minMediaEntries = 1;
+        var minMediaEntries = 3;
         var maxMediaEntries = 10;
         return IntStream.range(0, randomInteger(maxMediaEntries) + minMediaEntries)
                    .boxed()

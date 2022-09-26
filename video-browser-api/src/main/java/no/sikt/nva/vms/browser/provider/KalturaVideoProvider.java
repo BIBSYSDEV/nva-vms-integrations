@@ -1,11 +1,14 @@
-package no.sikt.nva.vms.browser;
+package no.sikt.nva.vms.browser.provider;
 
 import com.kaltura.client.types.MediaEntry;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
+import no.sikt.nva.vms.browser.PagedResult;
+import no.sikt.nva.vms.browser.VideoPresentation;
+import no.sikt.nva.vms.browser.VideoProvider;
 import no.sikt.nva.vms.kaltura.KalturaClient;
+import no.sikt.nva.vms.kaltura.KalturaException;
 import no.sikt.nva.vms.kaltura.MediaEntriesResult;
 
 public class KalturaVideoProvider implements VideoProvider {
@@ -24,8 +27,9 @@ public class KalturaVideoProvider implements VideoProvider {
     }
 
     @Override
-    public PagedResult<VideoPresentation> fetchVideoPresentations(int size, int offset) throws Exception {
-        var presentations = getPresentations();
+    public PagedResult<VideoPresentation> fetchVideoPresentations(int size, int offset)
+        throws ProviderFailedException, IllegalInputException {
+        var presentations = fetchPresentations();
         validateOffset(offset, presentations);
         int lastIndexOfVideoOnThisPage = calculateLastIndexOfVideoOnThisPage(size, offset, presentations);
 
@@ -33,9 +37,9 @@ public class KalturaVideoProvider implements VideoProvider {
                                  presentations.subList(offset, lastIndexOfVideoOnThisPage));
     }
 
-    private void validateOffset(final int offset, List<VideoPresentation> presentations) throws BadRequestException {
+    private void validateOffset(final int offset, List<VideoPresentation> presentations) throws IllegalInputException {
         if (offset > presentations.size()) {
-            throw new BadRequestException(OFFSET_OUT_OF_RANGE, HttpURLConnection.HTTP_BAD_REQUEST);
+            throw new IllegalInputException(OFFSET_OUT_OF_RANGE);
         }
     }
 
@@ -43,14 +47,18 @@ public class KalturaVideoProvider implements VideoProvider {
         return Math.min(offset + size, presentations.size());
     }
 
-    private List<VideoPresentation> getPresentations() throws Exception {
+    private List<VideoPresentation> fetchPresentations() throws ProviderFailedException {
         return getMediaEntries().mediaEntries.stream()
                    .map(this::convertMediaEntryToVideoPresentation)
                    .collect(Collectors.toList());
     }
 
-    private MediaEntriesResult getMediaEntries() throws Exception {
-        return kalturaClient.getMediaEntries(username);
+    private MediaEntriesResult getMediaEntries() throws ProviderFailedException {
+        try {
+            return kalturaClient.getMediaEntries(username);
+        } catch (KalturaException e) {
+            throw new ProviderFailedException("Problems with provider", e);
+        }
     }
 
     private VideoPresentation convertMediaEntryToVideoPresentation(MediaEntry mediaEntry) {

@@ -12,6 +12,7 @@ import static no.sikt.nva.vms.kaltura.KalturaMock.KALTURA_GET_ENTRIES_PATH;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.NEXT_RESULTS_WITH_OFFSET_10;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.PREVIOUS_RESULTS_WITH_OFFSET_10;
 import static no.sikt.nva.vms.util.ExpectedResultTestClass.VIDEO_PRESENTATION;
+import static no.unit.nva.testutils.RandomDataGenerator.randomString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
@@ -136,16 +137,38 @@ public class VideoBrowserHandlerTest {
         constructTest(DEFAULT_PAGE_SIZE, OFFSET_30, TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
                       "videoPresentationsResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
-
-        assertThat(response.getStatusCode(), is(equalTo(STATUS_CODE_500)));
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_BAD_REQUEST)));
     }
 
     @Test
-    void shouldReturnBadRequestIfPageSizeOrOffsetAreNegative() throws IOException {
-        constructTest("-10", "0", TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET, "singleVideoPresentationResponse.json");
+    void shouldReturnBadRequestIfPageSizeIsNegative() throws IOException {
+        constructTest("-10", "0", TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "singleVideoPresentationResponse.json");
         var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
 
         assertThat(response.getStatusCode(), is(equalTo(HTTP_BAD_REQUEST)));
+    }
+
+    @Test
+    void shouldReturnBadRequestIfOffsetIsNegative() throws IOException {
+        constructTest("10", "-10", TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "singleVideoPresentationResponse.json");
+        var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
+
+        assertThat(response.getStatusCode(), is(equalTo(HTTP_BAD_REQUEST)));
+    }
+
+    @Test
+    void shouldThrowKalturaProviderExceptionIfConfigIsNotCorrect() throws IOException {
+        var videoIntegrationConfig = IoUtils.stringFromResources(Path.of("videoIntegrationConfig.json"));
+        var config = videoIntegrationConfig.replace(KALTURA_SERVICE_URL_PLACEHOLDER, randomString());
+
+        fakeSecretsManagerClient.putPlainTextSecret(VIDEO_INTEGRATION_CONFIG_SECRET, config);
+        constructTest("10", "0", TEST_USER_EMAIL_FOR_KALTURA, DEFAULT_OFFSET,
+                      "singleVideoPresentationResponse.json");
+        var response = GatewayResponse.fromOutputStream(output, PagedResult.class);
+
+        assertThat(response.getStatusCode(), is(equalTo(500)));
     }
 
     @Test
@@ -161,7 +184,7 @@ public class VideoBrowserHandlerTest {
                                String defaultOffset, String file) throws IOException {
         var input = createRequest(defaultPageSize, offset20, testUserEmailForKaltura);
         stubRequestForVideoPresentations(defaultOffset, testUserEmailForKaltura);
-        stubRequestForFetchingEntriesFromKalturaClient(jsonToString(file));
+        stubRequestForFetchingEntriesFromKaltura(jsonToString(file));
         VideoBrowserHandler handler = createVideoBrowserHandler();
         handler.handleRequest(input, output, context);
     }
@@ -193,16 +216,16 @@ public class VideoBrowserHandlerTest {
     }
 
     private void stubRequestForVideoPresentations(String offset, String responseBody) {
-        stubFor(get(urlPathEqualTo(VMS_PRESENTATIONS_PATH)).withQueryParam(PAGE_SIZE_PARAM,
-                                                                           WireMock.equalTo(DEFAULT_PAGE_SIZE))
+        stubFor(get(urlPathEqualTo(VMS_PRESENTATIONS_PATH))
+                    .withQueryParam(PAGE_SIZE_PARAM, WireMock.equalTo(DEFAULT_PAGE_SIZE))
                     .withQueryParam(PAGE_OFFSET_PARAM, WireMock.equalTo(offset))
-                    .willReturn(
-                        ok().withHeader(CONTENT_TYPE, APPLICATION_JSON_CONTENT_TYPE_VALUE).withBody(responseBody)));
+                    .willReturn(ok().withHeader(CONTENT_TYPE, APPLICATION_JSON_CONTENT_TYPE_VALUE)
+                                    .withBody(responseBody)));
     }
 
-    private void stubRequestForFetchingEntriesFromKalturaClient(String responseBody) {
-        stubFor(post(urlPathEqualTo(KALTURA_GET_ENTRIES_PATH)).withHeader("Accept-Charset", WireMock.equalTo(
-                "utf-8,ISO-8859-1;q=0.7,*;q=0.5"))
+    private void stubRequestForFetchingEntriesFromKaltura(String responseBody) {
+        stubFor(post(urlPathEqualTo(KALTURA_GET_ENTRIES_PATH))
+                    .withHeader("Accept-Charset", WireMock.equalTo("utf-8,ISO-8859-1;q=0.7,*;q=0.5"))
                     .withHeader("Accept", WireMock.equalTo("application/json"))
                     .willReturn(ok().withBody(responseBody)));
     }
