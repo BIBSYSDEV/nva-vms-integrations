@@ -1,11 +1,11 @@
 openapi: 3.0.0
 info:
   version: '1.0'
-  title: DLR VMS Service API
+  title: NVA VMS Service API
   license:
     name: MIT
 paths:
-  /presentations/{offset}{pageSize}:
+  /presentations:
     get:
       parameters:
         - in: query
@@ -14,7 +14,7 @@ paths:
             type: integer
           description: The number of items to skip before starting to collect the result set
         - in: query
-          name: pageSize
+          name: size
           schema:
             type: integer
           description: The numbers of items to return
@@ -31,9 +31,86 @@ paths:
       responses:
         '200':
           description: Request has succeeded
-
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PagedResult'
         '500':
           description: Unexpected error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          description: Bad request, invalid query parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+    Problem:
+      type: object
+      required:
+        - title
+        - status
+        - detail
+      properties:
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+    PagedResult:
+      type: object
+      required:
+        - id
+        - result
+        - totalSize
+      properties:
+        id:
+          type: string
+        results:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - title
+              - timeRecorded
+              - presenter
+              - downloadUrl
+              - streamingUrl
+              - thumbnailUrl
+              - contentIdentifier
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              timeRecorded:
+                type: integer
+              presenter:
+                type: string
+              downloadUrl:
+                type: string
+              streamingUrl:
+                type: string
+              thumbnailUrl:
+                type: string
+              contentIdentifier:
+                type: string
+        totalSize:
+          type: integer
+        nextResults:
+          type: string
+        previousResults:
+          type: string
+
+
+
 
 
 
