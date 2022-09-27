@@ -7,6 +7,7 @@ info:
 paths:
   /presentations:
     get:
+      summary: Fetch VMS resources in DLR
       parameters:
         - in: query
           name: offset
@@ -18,11 +19,12 @@ paths:
           schema:
             type: integer
           description: The numbers of items to return
-      summary: Fetch VMS resources in DLR
       operationId: vms
       tags:
         - panopto
         - kaltura
+      security:
+        - CognitoUserPool: [ 'https://api.nva.unit.no/scopes/backend', 'https://api.nva.unit.no/scopes/frontend', 'aws.cognito.signin.user.admin' ]
       x-amazon-apigateway-integration:
         uri:
           Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${VMSIntegrationServiceFunction.Arn}/invocations
