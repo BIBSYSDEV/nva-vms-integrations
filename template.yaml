@@ -69,7 +69,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: video-browser-api
-      Handler: no.sikt.nva.vms..browser.VideoBrowserHandler::handleRequest
+      Handler: no.sikt.nva.vms.browser.VideoBrowserHandler::handleRequest
       Role: !GetAtt VMSIntegrationServiceRole.Arn
       Environment:
         Variables:
