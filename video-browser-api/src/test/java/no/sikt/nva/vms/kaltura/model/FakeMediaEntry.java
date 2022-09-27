@@ -1,4 +1,4 @@
-package no.sikt.nva.vms.kaltura;
+package no.sikt.nva.vms.kaltura.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.ArrayList;

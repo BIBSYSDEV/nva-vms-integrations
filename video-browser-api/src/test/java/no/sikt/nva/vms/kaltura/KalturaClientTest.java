@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.kaltura.client.types.BaseEntry;
 import java.util.stream.Collectors;
+import no.sikt.nva.vms.kaltura.model.FakeMediaEntry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,14 +54,11 @@ public class KalturaClientTest {
     void shouldReturnUserEntriesFromKaltura() throws Exception {
         var expectedEntries = mock.createClientWithEntries();
         var clientUserId = expectedEntries.get(0).getCreatorId();
-        var actualEntries = client.getMediaEntries(clientUserId, 10, 0);
-
+        var actualEntries = client.getMediaEntries(clientUserId).mediaEntries;
         var expectedPresentationsIdList = expectedEntries.stream()
                                               .map(FakeMediaEntry::getId)
                                               .collect(Collectors.toList());
-        var actualPresentationsIdList = actualEntries.stream()
-                                            .map(BaseEntry::getId)
-                                            .collect(Collectors.toList());
+        var actualPresentationsIdList = actualEntries.stream().map(BaseEntry::getId).collect(Collectors.toList());
 
         var expectedPresentationsDownloadUrlList = expectedEntries.stream()
                                                        .map(FakeMediaEntry::getDownloadUrl)
@@ -75,8 +73,10 @@ public class KalturaClientTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenFetchingEntriesWithInvalidAdminSecretInKalturaClient() {
-        var entryId = mock.createClientWithInvalidAdminSecret();
-        assertThrows(Exception.class, () -> client.getMediaEntry(entryId));
+    void shouldReturnKalturaExceptionIfFetchingOfMediaEntriesFails() {
+        KalturaClient client = new KalturaClient(randomString(), randomString(), randomInteger(),
+                                                 randomString(), randomInteger(), randomInteger());
+
+        assertThrows(KalturaException.class, () -> client.getMediaEntries("asd"));
     }
 }

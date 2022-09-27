@@ -4,56 +4,65 @@ import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static nva.commons.core.attempt.Try.attempt;
 import com.amazonaws.services.lambda.runtime.Context;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import java.lang.reflect.Array;
 import java.net.URI;
-import java.util.function.Supplier;
+import no.sikt.nva.vms.browser.model.Institution;
+import no.sikt.nva.vms.browser.model.Kaltura;
+import no.sikt.nva.vms.browser.model.VideoProviderConfig;
+import no.sikt.nva.vms.browser.provider.IllegalInputException;
+import no.sikt.nva.vms.browser.provider.KalturaVideoProvider;
+import no.sikt.nva.vms.browser.provider.ProviderFailedException;
+import no.sikt.nva.vms.kaltura.KalturaClient;
+import no.unit.nva.commons.json.JsonUtils;
 import nva.commons.apigateway.ApiGatewayHandler;
 import nva.commons.apigateway.RequestInfo;
+import nva.commons.apigateway.exceptions.UnauthorizedException;
 import nva.commons.core.Environment;
 import nva.commons.core.JacocoGenerated;
 import nva.commons.core.paths.UriWrapper;
+import nva.commons.secrets.SecretsReader;
+import org.jetbrains.annotations.Nullable;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<VideoPresentation>> {
 
+    public static final String KALTURA_CLIENT_CONFIG_SECRET_NAME = "videoIntegrationConfig";
+    public static final String AT_SIGN = "@";
+    /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "ApiDomain";
     @SuppressWarnings("PMD")
-    private static final URI DEFAULT_BROWSE_CONTEXT = URI.create("https://api.nva.unit.no/vms/presentations/browse");
     private static final String NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE = "Negative offset and/or size values are"
                                                                               + " not allowed";
-    private static final String INVALID_QUERY_PARAMETERS_EXCEPTION_MESSAGE = "Invalid offset and/or size values";
     private static final String SIZE = "size";
     private static final String OFFSET = "offset";
     private static final String DEFAULT_SIZE = "10";
     private static final String DEFAULT_OFFSET = "0";
+    private static final String HTTPS_SCHEME = UriWrapper.HTTPS + "://";
+    private final URI apiBaseUrl;
+    private final SecretsReader secretsReader;
 
-    private final Supplier<VideoProvider> videoProvider;
+    @JacocoGenerated
+    public VideoBrowserHandler() {
+        this(new Environment(), SecretsReader.defaultSecretsManagerClient());
+    }
 
-    //    @JacocoGenerated
-    //    public VideoBrowserHandler() {
-    //        this(new Environment(), () -> null);
-    //    }
-
-    public VideoBrowserHandler(final Environment environment, final Supplier<VideoProvider> videoProvider) {
+    public VideoBrowserHandler(final Environment environment, final SecretsManagerClient secretsManagerClient) {
         super(Void.class, environment);
-        this.videoProvider = videoProvider;
+        this.secretsReader = new SecretsReader(secretsManagerClient);
+        this.apiBaseUrl = getBaseUrlFromHost(environment);
     }
 
     @Override
     protected PagedResult<VideoPresentation> processInput(final Void input, final RequestInfo requestInfo,
                                                           final Context context)
-        throws BadRequestException {
+        throws BadRequestException, UnauthorizedException {
 
-        var pageSize = attempt(
-            () -> Integer.parseInt(requestInfo.getQueryParameterOpt(SIZE).orElse(DEFAULT_SIZE)))
-                           .orElseThrow(exception -> new BadRequestException(INVALID_QUERY_PARAMETERS_EXCEPTION_MESSAGE,
-                                                                             HTTP_BAD_REQUEST));
+        var pageSize = getPageSize(requestInfo);
+        var offset = getOffset(requestInfo);
+        var username = requestInfo.getUserName();
+        validatePageSizeAndOffset(pageSize, offset);
 
-        var offset = attempt(
-            () -> Integer.parseInt(requestInfo.getQueryParameterOpt(OFFSET).orElse(DEFAULT_OFFSET))).orElseThrow();
-
-        if (pageSize < 0 || offset < 0) {
-            throw new BadRequestException(NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE, HTTP_BAD_REQUEST);
-        }
-
-        return videoProvider.get().fetchVideoPresentations(pageSize, offset);
+        return getVideoPresentationPagedResult(context, pageSize, offset, username);
     }
 
     @Override
@@ -61,26 +70,81 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         return HTTP_OK;
     }
 
-    @SuppressWarnings("PMD")
-    @JacocoGenerated
-    private static URI generatePreviousResults() {
-        // TODO: will be implemented when we actually start returning results.
-        return null;
+    private void validatePageSizeAndOffset(Integer pageSize, Integer offset) throws BadRequestException {
+        if (pageSize < 0 || offset < 0) {
+            throw new BadRequestException(NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE, HTTP_BAD_REQUEST);
+        }
     }
 
-    @SuppressWarnings("PMD")
-    @JacocoGenerated
-    private static URI generateNextResults() {
-        // TODO: will be implemented when we actually start returning results.
-        return null;
+    @Nullable
+    private PagedResult<VideoPresentation> getVideoPresentationPagedResult(Context context, Integer pageSize,
+                                                                           Integer offset, String username)
+        throws BadRequestException {
+        Institution institution = getInstitution(username);
+        if (institution.getKaltura() != null) {
+            return fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
+                                                              institution.getKaltura());
+        } else {
+            /*TODO: implement Panopto**/
+            return null;
+        }
     }
 
-    @SuppressWarnings("PMD")
-    @JacocoGenerated
-    private URI generateId(final URI baseRequestUri, final int size, final int offset) {
-        return UriWrapper.fromUri(baseRequestUri)
-                   .addQueryParameter(SIZE, Integer.toString(size))
-                   .addQueryParameter(OFFSET, Integer.toString(offset))
-                   .getUri();
+    private PagedResult<VideoPresentation> fetchVideoPresentationsWithKalturaProvider(Context context, Integer pageSize,
+                                                                                      Integer offset, String username,
+                                                                                      Kaltura configForKaltura)
+        throws BadRequestException {
+        try {
+            return new KalturaVideoProvider(context.toString(), getKalturaClient(configForKaltura), username,
+                                            apiBaseUrl).fetchVideoPresentations(pageSize, offset);
+        } catch (ProviderFailedException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalInputException e) {
+            throw new BadRequestException(e.getMessage(), HTTP_BAD_REQUEST);
+        }
+    }
+
+    private KalturaClient getKalturaClient(Kaltura kaltura) {
+        return new KalturaClient(kaltura.getKalturaClientServiceUrl(), kaltura.getKalturaClientAdminSecret(),
+                                 kaltura.getKalturaClientAdminID(), kaltura.getKalturaClientUserID(),
+                                 kaltura.getKalturaClientConnectTimeout(), kaltura.getKalturaClientReadTimeout());
+    }
+
+    private String getInstitutionFeideDomainFromEmail(String institutionsEmail) {
+        return (String) Array.get(institutionsEmail.split(AT_SIGN), 1);
+    }
+
+    private Integer getPageSize(RequestInfo requestInfo) {
+        return Integer.parseInt(requestInfo.getQueryParameterOpt(SIZE).orElse(DEFAULT_SIZE));
+    }
+
+    private Integer getOffset(RequestInfo requestInfo) {
+        return attempt(
+            () -> Integer.parseInt(requestInfo.getQueryParameterOpt(OFFSET).orElse(DEFAULT_OFFSET))).orElseThrow();
+    }
+
+    private String getVideoIntegrationConfig() {
+        return secretsReader.fetchPlainTextSecret(KALTURA_CLIENT_CONFIG_SECRET_NAME);
+    }
+
+    private Institution getMatchingInstitutionFromConfig(String config, String institutionId)
+        throws JsonProcessingException {
+        return JsonUtils.dtoObjectMapper.readValue(config, VideoProviderConfig.class)
+                   .getInstitutions()
+                   .stream()
+                   .filter(institution -> institution.getId().equals(institutionId))
+                   .findAny()
+                   .orElseThrow();
+    }
+
+    private Institution getInstitution(String username) {
+        var institutionFeideDomain = getInstitutionFeideDomainFromEmail(username);
+        var videoIntegrationConfig = getVideoIntegrationConfig();
+        return attempt(
+            () -> getMatchingInstitutionFromConfig(videoIntegrationConfig, institutionFeideDomain)).orElseThrow();
+    }
+
+    private URI getBaseUrlFromHost(Environment environment) {
+        return UriWrapper.fromUri(HTTPS_SCHEME + environment.readEnv(NVA_APPLICATION_DOMAIN_ENV_NAME)).getUri();
     }
 }

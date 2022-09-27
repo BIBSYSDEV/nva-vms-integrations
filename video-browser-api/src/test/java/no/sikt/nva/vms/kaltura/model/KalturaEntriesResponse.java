@@ -1,4 +1,4 @@
-package no.sikt.nva.vms.kaltura;
+package no.sikt.nva.vms.kaltura.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -14,7 +14,7 @@ public class KalturaEntriesResponse {
     private final String objectType;
 
     @JsonCreator
-    public KalturaEntriesResponse(List<FakeMediaEntry> objects, Integer totalCount, String objectType) {
+    public  KalturaEntriesResponse(List<FakeMediaEntry> objects, Integer totalCount, String objectType) {
         this.objects = objects;
         this.totalCount = totalCount;
         this.objectType = objectType;
