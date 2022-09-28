@@ -59,7 +59,6 @@ public class VideoBrowserHandlerTest {
     public static final String API_HOST_VALUE = "api.sandbox.nva.aws.unit.no";
     public static final String OFFSET_10 = "10";
     public static final String OFFSET_20 = "20";
-    public static final Integer STATUS_CODE_500 = 500;
     private static final ObjectMapper OBJECT_MAPPER = JsonUtils.dtoObjectMapper;
     private static final String ALLOWED_ORIGIN_ENV_NAME = "ALLOWED_ORIGIN";
     private static final String ALLOWED_ORIGIN_ALL = "*";

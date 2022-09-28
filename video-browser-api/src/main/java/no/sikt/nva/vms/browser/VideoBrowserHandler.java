@@ -23,11 +23,14 @@ import nva.commons.core.JacocoGenerated;
 import nva.commons.core.paths.UriWrapper;
 import nva.commons.secrets.SecretsReader;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<VideoPresentation>> {
 
     public static final String KALTURA_CLIENT_CONFIG_SECRET_NAME = "videoIntegrationConfig";
+    private static final Logger logger = LoggerFactory.getLogger(VideoBrowserHandler.class);
     public static final String AT_SIGN = "@";
     /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "API_HOST";
     @SuppressWarnings("PMD")
@@ -38,7 +41,8 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     private static final String DEFAULT_SIZE = "10";
     private static final String DEFAULT_OFFSET = "0";
     private static final String HTTPS_SCHEME = UriWrapper.HTTPS + "://";
-    private final URI apiBaseUrl;
+
+    private final URI apiHost;
     private final SecretsReader secretsReader;
 
     @JacocoGenerated
@@ -49,7 +53,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     public VideoBrowserHandler(final Environment environment, final SecretsManagerClient secretsManagerClient) {
         super(Void.class, environment);
         this.secretsReader = new SecretsReader(secretsManagerClient);
-        this.apiBaseUrl = getBaseUrlFromHost(environment);
+        this.apiHost = getBaseUrlFromHost(environment);
     }
 
     @Override
@@ -60,6 +64,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         var pageSize = getPageSize(requestInfo);
         var offset = getOffset(requestInfo);
         var username = requestInfo.getUserName();
+        logger.info("Username is following: " + username);
         validatePageSizeAndOffset(pageSize, offset);
 
         return getVideoPresentationPagedResult(context, pageSize, offset, username);
@@ -96,7 +101,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
         throws BadRequestException {
         try {
             return new KalturaVideoProvider(context.toString(), getKalturaClient(configForKaltura), username,
-                                            apiBaseUrl).fetchVideoPresentations(pageSize, offset);
+                                            apiHost).fetchVideoPresentations(pageSize, offset);
         } catch (ProviderFailedException e) {
             throw new RuntimeException(e);
         } catch (IllegalInputException e) {
