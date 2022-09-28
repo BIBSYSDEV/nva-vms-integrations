@@ -29,7 +29,7 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
     public static final String KALTURA_CLIENT_CONFIG_SECRET_NAME = "videoIntegrationConfig";
     public static final String AT_SIGN = "@";
-    /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "ApiDomain";
+    /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "API_HOST";
     @SuppressWarnings("PMD")
     private static final String NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE = "Negative offset and/or size values are"
                                                                               + " not allowed";

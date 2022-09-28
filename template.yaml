@@ -81,7 +81,8 @@ Resources:
       Role: !GetAtt VMSIntegrationServiceRole.Arn
       Environment:
         Variables:
-          ApiDomain: !Ref ApiDomain
+          COGNITO_HOST: !Ref CognitoAuthorizationUri
+          API_HOST: !Ref ApiDomain
           DlrApplicationDomain: !Ref DlrApplicationDomain
           ALLOWED_ORIGIN: '*'
       Events:
