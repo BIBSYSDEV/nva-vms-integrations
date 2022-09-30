@@ -59,11 +59,11 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
     @Override
     protected PagedResult<VideoPresentation> processInput(final Void input, final RequestInfo requestInfo,
                                                           final Context context)
-        throws BadRequestException, UnauthorizedException {
+        throws BadRequestException {
 
         var pageSize = getPageSize(requestInfo);
         var offset = getOffset(requestInfo);
-        var username = requestInfo.getUserName();
+        var username = requestInfo.getFeideId().orElseThrow();
         logger.info("Username is following: " + username);
         validatePageSizeAndOffset(pageSize, offset);
 
