@@ -202,7 +202,7 @@ public class VideoBrowserHandlerTest {
         return OBJECT_MAPPER.readValue(body, type);
     }
 
-    private InputStream createRequest(final String pageSize, final String offset, String username)
+    private InputStream createRequest(final String pageSize, final String offset, String feideId)
         throws JsonProcessingException {
         final Map<String, String> queryParameters = Map.of(SIZE_PARAMETER_NAME, pageSize, OFFSET_PARAMETER_NAME,
                                                            offset);
@@ -210,7 +210,7 @@ public class VideoBrowserHandlerTest {
                 DOMAIN_NAME_REQUEST_CONTEXT_PARAMETER_NAME, "api.nva.unit.no")
                    .withRequestContextValue(PATH_REQUEST_CONTEXT_PARAMETER_NAME, VMS_PRESENTATIONS_PATH)
                    .withQueryParameters(queryParameters)
-                   .withUserName(username)
+                   .withFeideId(feideId)
                    .build();
     }
 

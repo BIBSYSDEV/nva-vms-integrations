@@ -17,7 +17,6 @@ import no.sikt.nva.vms.kaltura.KalturaClient;
 import no.unit.nva.commons.json.JsonUtils;
 import nva.commons.apigateway.ApiGatewayHandler;
 import nva.commons.apigateway.RequestInfo;
-import nva.commons.apigateway.exceptions.UnauthorizedException;
 import nva.commons.core.Environment;
 import nva.commons.core.JacocoGenerated;
 import nva.commons.core.paths.UriWrapper;
@@ -30,9 +29,9 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<VideoPresentation>> {
 
     public static final String KALTURA_CLIENT_CONFIG_SECRET_NAME = "videoIntegrationConfig";
-    private static final Logger logger = LoggerFactory.getLogger(VideoBrowserHandler.class);
     public static final String AT_SIGN = "@";
     /* default */ static final String NVA_APPLICATION_DOMAIN_ENV_NAME = "API_HOST";
+    private static final Logger logger = LoggerFactory.getLogger(VideoBrowserHandler.class);
     @SuppressWarnings("PMD")
     private static final String NEGATIVE_QUERY_PARAMETERS_EXCEPTION_MESSAGE = "Negative offset and/or size values are"
                                                                               + " not allowed";
@@ -63,11 +62,11 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
 
         var pageSize = getPageSize(requestInfo);
         var offset = getOffset(requestInfo);
-        var username = requestInfo.getFeideId().orElseThrow();
-        logger.info("Username is following: " + username);
+        var feideId = requestInfo.getFeideId().orElseThrow();
+        logger.info("Feide ID is following: " + feideId);
         validatePageSizeAndOffset(pageSize, offset);
 
-        return getVideoPresentationPagedResult(context, pageSize, offset, username);
+        return getVideoPresentationPagedResult(context, pageSize, offset, feideId);
     }
 
     @Override
