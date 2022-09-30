@@ -85,6 +85,9 @@ public class VideoBrowserHandler extends ApiGatewayHandler<Void, PagedResult<Vid
                                                                            Integer offset, String username)
         throws BadRequestException {
         Institution institution = getInstitution(username);
+        logger.info("Your institution is: " + institution);
+        logger.info("Your institution kaltura is: " + institution.getKaltura());
+        logger.info("Your institution panopto is: " + institution.getPanopto());
         if (institution.getKaltura() != null) {
             return fetchVideoPresentationsWithKalturaProvider(context, pageSize, offset, username,
                                                               institution.getKaltura());
